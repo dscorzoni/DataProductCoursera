@@ -58,6 +58,16 @@ m <- as.matrix(myDtm)
 v <- sort(rowSums(m), decreasing = TRUE)
 ```
 
+## Plotting the wordcloud
+
+Using the package **wordcloud**, the function below plot the wordcloud using the parameters of minimum frequency and maximum number of words. It also uses the package **RColorBrewer** to give some color to the wordcloud.
+
+```{r eval = FALSE}
+wordcloud(names(v), v, min.freq = input$minFreq, 
+          max.words = input$maxFreq, colors = brewer.pal(8,"Dark2"),
+          scale=c(10,.5))
+```
+
 
 
 
