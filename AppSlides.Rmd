@@ -1,0 +1,92 @@
+---
+title: "URL Text Analysis"
+author: "Danilo Scorzoni Ré"
+date: "Sunday, January 25, 2015"
+e-mail: danilo.scorzoni@gmail.com
+output: ioslides_presentation
+runtime: shiny
+---
+
+## URL Text Analysis
+
+The URL Text Analysis app is a very simple app that gets the HTML code of a specified URL, process the text inside `<p></p>` tags and plots a wordcloud to the user. In the background, the app uses the **tm** package to process the text and transform it in documents and words, and the **wordcloud** package to plot the wordcloud.
+
+## Details of the App
+
+The functionality of this app is descibed in the following steps:
+
+1. The user paste an URL whose text is availabe in paragraphs (``<p></p>`` tags).
+2. The app scraps the HTML.
+3. The parsing process starts to get the content of ``<p></p>`` tags.
+4. The text is processed to remove punctuation and numbers.
+5. The text is converted in a Term-Document Frequency matrix.
+6. The overwall word frequencies are calculated.
+7. The wordcloud is plotted in the screen.
+
+## URL Text Analysis App
+
+```{r echo = FALSE, warning=FALSE, message=FALSE}
+
+library(shiny)
+library(XML)
+library(RCurl)
+library(tm)
+library(wordcloud)
+library(RColorBrewer)
+
+langs <- c("english","french","german","italian","portuguese","russian",
+           "spanish")
+
+inputPanel(
+  textInput("url", "URL (with http://):", 
+            value = "http://www.bbc.com/news/science-environment-30954673"),
+  selectInput("lang", "Select the language:", choices = langs,
+                    selected = "english"),
+  sliderInput("minFreq", "Minimum frequency:", 
+                    min = 1, max = 50, value = 3),
+  sliderInput("maxFreq", "Maximum number of words:",
+                    min = 1, max = 500, value = 100)
+)
+
+terms <- reactive({
+  
+html = getURL(input$url)
+doc.html = htmlTreeParse(html, useInternal = TRUE)
+doc.text = unlist(xpathApply(doc.html, '//p', xmlValue))
+                
+doc.text = gsub('\\n', ' ', doc.text)
+doc.text = gsub('\\r', ' ', doc.text)
+doc.text = gsub('\\t', ' ', doc.text)
+                
+# Transforming in a Corpora
+myCorpus <- Corpus(VectorSource(doc.text))
+myCorpus <- tm_map(myCorpus, content_transformer(tolower))
+myCorpus <- tm_map(myCorpus, removePunctuation)
+myCorpus <- tm_map(myCorpus, removeNumbers)
+myCorpus <- tm_map(myCorpus, removeWords, stopwords(input$lang))
+                
+# Transforming in a Term Document Matrix
+myDtm <- TermDocumentMatrix(myCorpus, control = list(minWordLength = 3))
+                
+# Building the Wordcloud
+m <- as.matrix(myDtm)
+v <- sort(rowSums(m), decreasing = TRUE)
+
+})
+
+renderPlot({
+  v <- terms()
+  wordcloud(names(v), v, min.freq = input$minFreq, 
+            max.words = input$maxFreq, colors = brewer.pal(8,"Dark2"),
+            scale=c(10,.5))
+})
+
+```
+
+## Next Steps
+
+I plan to improve the app using a more interactive wordcloud.
+
+Thanks for appreciating it! =)
+
+
